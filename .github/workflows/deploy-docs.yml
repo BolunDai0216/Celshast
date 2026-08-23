@@ -3,30 +3,47 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
 jobs:
   build:
     permissions:
       contents: read
     runs-on: ubuntu-latest
+    env:
+      PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
     steps:
       - uses: actions/checkout@v7
+
       - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12" # keep in sync with mise.toml
+
       - uses: actions/setup-node@v7
         with:
-          node-version: "14"
+          node-version: "22.23.2" # keep in sync with pyproject.toml
 
-      - run: pipx run nox -s docs
-      - uses: actions/upload-pages-artifact@v1
+      # noxfile.py sets default_venv_backend = "uv", so uv must be on PATH.
+      - uses: astral-sh/setup-uv@v7
+
+      - run: uvx nox -s docs
+
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: ./build/docs/
 
-      - run: npm install @percy/cli
-      - run: npx percy snapshot ./build/docs/
-        env:
-          PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+      # Forks have no PERCY_TOKEN; skip rather than fail the build.
+      - name: Percy snapshot
+        if: ${{ env.PERCY_TOKEN != '' }}
+        run: |
+          npm install @percy/cli
+          npx percy snapshot ./build/docs/
 
   deploy:
     needs: build
+    # Only the canonical repo publishes to Pages; forks just build.
+    if: ${{ github.repository == 'Farama-Foundation/Celshast' }}
     permissions:
       pages: write
       id-token: write
@@ -37,4 +54,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v5
