@@ -426,7 +426,7 @@ We use [sphinx-gallery](https://sphinx-gallery.github.io/stable/index.html) to b
 
 ```python
 extensions = [
-    ...
+    ...,
     "sphinx_gallery.gen_gallery",
 ]
 

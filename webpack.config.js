@@ -9,7 +9,9 @@ module.exports = {
       "./src/celshast/assets/scripts/celshast.js",
       "./src/celshast/assets/styles/celshast.sass",
     ],
-    "celshast-extensions": ["./src/celshast/assets/styles/celshast-extensions.sass"],
+    "celshast-extensions": [
+      "./src/celshast/assets/styles/celshast-extensions.sass",
+    ],
   },
   output: {
     filename: "scripts/[name].js",

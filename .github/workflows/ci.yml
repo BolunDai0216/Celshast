@@ -1,0 +1,54 @@
+# Basic sanity checks for pull requests.
+# Both jobs shell out to the nox sessions in noxfile.py, so CI and local
+# development (see the Justfile) run exactly the same commands.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12" # keep in sync with mise.toml
+
+      # noxfile.py sets default_venv_backend = "uv", so uv must be on PATH.
+      - uses: astral-sh/setup-uv@v7
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      # GitHub sets CI=true, which makes the session add --show-diff-on-failure.
+      - run: uvx nox -s lint
+
+  docs:
+    name: Build docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12" # keep in sync with mise.toml
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "18.17.1" # keep in sync with pyproject.toml
+
+      - uses: astral-sh/setup-uv@v7
+
+      # Installs the package, which makes sphinx-theme-builder run webpack over
+      # the Sass/JS assets, then builds the docs with the freshly built theme.
+      - run: uvx nox -s docs
